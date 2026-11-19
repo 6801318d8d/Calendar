@@ -1,7 +1,5 @@
 package org.fossify.calendar.extensions
 
-import android.accounts.Account
-import android.accounts.AccountManager
 import android.annotation.SuppressLint
 import android.app.AlarmManager
 import android.app.Notification
@@ -922,11 +920,8 @@ fun Context.handleEventDeleting(eventIds: List<Long>, timestamps: List<Long>, ac
 }
 
 fun Context.refreshCalDAVCalendars(ids: String, showToasts: Boolean) {
-    val uri = CalendarContract.Calendars.CONTENT_URI
-    val accounts = HashSet<Account>()
-    val calendars = calDAVHelper.getCalDAVCalendars(ids, showToasts)
-    calendars.forEach {
-        accounts.add(Account(it.accountName, it.accountType))
+    if (calDAVHelper.getCalDAVCalendars(ids, showToasts).isEmpty()) {
+        return
     }
 
     Bundle().apply {
@@ -935,24 +930,10 @@ fun Context.refreshCalDAVCalendars(ids: String, showToasts: Boolean) {
             // Assume this is a manual synchronisation when we showToasts to the user (swipe refresh, MainMenu-> refresh caldav calendars, ...)
             putBoolean(ContentResolver.SYNC_EXTRAS_MANUAL, true)
         }
-        accounts.forEach {
-            ContentResolver.requestSync(it, uri.authority, this)
-        }
+        // Since Android 13, a sync request for an account the app has no access to, such as a DAVx⁵ or ICSx⁵
+        // account, is silently ignored. A request without an account is not checked and syncs every calendar account.
+        ContentResolver.requestSync(null, CalendarContract.AUTHORITY, this)
     }
-}
-
-// Since Android 13, requestSync() silently ignores accounts the app has no access to, such as those of
-// DAVx⁵ or ICSx⁵, until the user picks them in the system account chooser
-fun Context.getInaccessibleCalDAVAccounts(): List<Account> {
-    if (!isTiramisuPlus()) {
-        return emptyList()
-    }
-
-    val accessibleAccounts = AccountManager.get(this).accounts.toSet()
-    return calDAVHelper.getCalDAVCalendars(config.caldavSyncedCalendarIds, false)
-        .map { Account(it.accountName, it.accountType) }
-        .distinct()
-        .filter { it !in accessibleAccounts }
 }
 
 fun Context.getWidgetFontSize() = when (config.fontSize) {

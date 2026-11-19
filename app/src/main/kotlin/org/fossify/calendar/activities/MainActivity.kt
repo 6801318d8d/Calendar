@@ -665,7 +665,7 @@ class MainActivity : SimpleActivity(), RefreshRecyclerViewListener {
             toast(R.string.refreshing)
         }
         updateCalDAVEvents()
-        syncCalDAVCalendars(askForAccountAccess = showRefreshToast) {
+        syncCalDAVCalendars {
             calDAVHelper.refreshCalendars(showToasts = true, scheduleNextSync = true) {
                 calDAVChanged()
             }
